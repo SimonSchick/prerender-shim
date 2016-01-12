@@ -4,12 +4,20 @@ const express = require('express');
 const app = express();
 const WebDriverPool = require('webdriver-pool');
 
-const settings = require(process.env.SETTINGS_PATH);
+const browserCount = process.env.BROWSER_COUNT || 1;
+const port = process.env.PORT || 3000;
+const address = process.env.ADDRESS || 'localhost';
+const explicitTimeout = process.env.EXPLICIT_TIMEOUT || 10000;
+const implicitTimeout = process.env.IMPLICIT_TIMEOUT || 2000;
 
 function makePool() {
 	return new WebDriverPool({
-		count: settings.browserCount,
-		loadImages: false
+		count: browserCount,
+		loadImages: false,
+		logging: {
+			enabled: true,
+			path: process.env.BROWSER_LOGGING_PATH || '/dev/null'
+		}
 	}).ready();
 }
 
@@ -28,16 +36,15 @@ makePool()
 			driver.get(url)
 			.then(() => getPrerenderState(driver))
 			.then(prerenderValue => {
-				console.log(1, prerenderValue);
 				if (prerenderValue === false) {
 					return driver.wait(
 						() => getPrerenderState(driver),
-						settings.falseTimeout,
+						explicitTimeout,
 						'Waiting for window.prerenderReady'
 					);
 				}
 				if (prerenderValue === undefined) {
-					return driver.sleep(2000);
+					return driver.sleep(implicitTimeout);
 				}
 				return true;
 			})
@@ -62,7 +69,7 @@ makePool()
 	}
 	app.get('/*', onRequest);
 
-	app.listen(3000, 'localhost');
+	app.listen(port, address);
 });
 
 
