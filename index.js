@@ -57,7 +57,8 @@ makePool()
 						() => getPrerenderState(driver),
 						explicitTimeout,
 						'Waiting for window.prerenderReady'
-					);
+					)
+				.thenCatch(() => { /* do nothing, just stop the error */ });
 				}
 				if (prerenderValue === undefined) {
 					return driver.sleep(implicitTimeout);
