@@ -3,12 +3,15 @@
 const express = require('express');
 const app = express();
 const WebDriverPool = require('webdriver-pool');
+const Cache = require('node-cache');
 
 const browserCount = process.env.BROWSER_COUNT || 1;
 const port = process.env.PORT || 3000;
 const address = process.env.ADDRESS || 'localhost';
 const explicitTimeout = process.env.EXPLICIT_TIMEOUT || 10000;
 const implicitTimeout = process.env.IMPLICIT_TIMEOUT || 2000;
+const cacheTTL = process.env.CACHE_TTL || 300;
+
 
 function makePool() {
 	return new WebDriverPool({
@@ -28,8 +31,20 @@ function getPrerenderState(driver) {
 makePool()
 .then(pool => {
 
+	const cache = new Cache({
+		stdTTL: cacheTTL,
+		checkperiod: 10
+	});
+
 	function onRequest(req, res, done) {
 		const url = req.path.substr(1);
+		const cached = cache.get(url);
+		if (cached) {
+			console.info('Returning cache for %s ', url);
+			res.status(200).send(cached).end();
+			done();
+			return;
+		}
 		console.info('rendering html for %s', url);
 		pool.getDriver()
 		.then(driver =>
@@ -59,6 +74,7 @@ makePool()
 		)
 		.then(code => {
 			console.info('Finished generating render for %s', url);
+			cache.set(url, code);
 			res.status(200).send(code).end();
 			done();
 		}, error => {
