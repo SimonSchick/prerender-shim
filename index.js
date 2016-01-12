@@ -38,7 +38,7 @@ makePool()
 	});
 
 	function onRequest(req, res, done) {
-		const url = req.path.substr(1);
+		const url = decodeURIComponent(req.path.substr(1));
 		const cached = cache.get(url);
 		if (cached) {
 			console.info('Returning cache for %s ', url);
