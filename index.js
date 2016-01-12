@@ -1,7 +1,6 @@
 'use strict';
 
 const express = require('express');
-const app = express();
 const WebDriverPool = require('webdriver-pool');
 const Cache = require('node-cache');
 
@@ -11,7 +10,6 @@ const address = process.env.ADDRESS || 'localhost';
 const explicitTimeout = process.env.EXPLICIT_TIMEOUT || 10000;
 const implicitTimeout = process.env.IMPLICIT_TIMEOUT || 2000;
 const cacheTTL = process.env.CACHE_TTL || 300;
-
 
 function makePool() {
 	return new WebDriverPool({
@@ -27,6 +25,9 @@ function makePool() {
 function getPrerenderState(driver) {
 	return driver.executeScript(function int() { return window.prerenderReady; });//eslint-disable-line
 }
+
+const app = express();
+app.disable('etag');
 
 makePool()
 .then(pool => {
