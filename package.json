@@ -12,7 +12,7 @@
     "express": "^4.13.3",
     "node-cache": "^3.0.0",
     "selenium-webdriver": "^2.48.2",
-    "webdriver-pool": "^0.3.3"
+    "webdriver-pool": "^0.3.4"
   },
   "devDependencies": {},
   "repository": {

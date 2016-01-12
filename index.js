@@ -18,7 +18,8 @@ function makePool() {
 		logging: {
 			enabled: true,
 			path: process.env.BROWSER_LOGGING_PATH || '/dev/null'
-		}
+		},
+		userAgent: 'Prerender'
 	}).ready();
 }
 
