@@ -1,6 +1,6 @@
 {
   "name": "prerender-shim",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Prerenders a websites HTML",
   "main": "index.js",
   "scripts": {
