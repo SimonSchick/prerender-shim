@@ -48,43 +48,57 @@ makePool()
 			return;
 		}
 		console.info('rendering html for %s', url);
+		let driver;
+		let pageSource;
+		let isPresent;
 		pool.getDriver()
-		.then(driver =>
-			driver.get(url)
-			.then(() => getPrerenderState(driver))
-			.then(prerenderValue => {
-				if (prerenderValue === false) {
-					return driver.wait(
-						() => getPrerenderState(driver),
-						explicitTimeout,
-						'Waiting for window.prerenderReady'
-					)
+		.then(driv => {
+			driver = driv;
+			driver.get(url);
+		})
+		.then(() => getPrerenderState(driver))
+		.then(prerenderValue => { //check prerender state
+			if (prerenderValue === false) {
+				return driver.wait(
+					() => getPrerenderState(driver),
+					explicitTimeout,
+					'Waiting for window.prerenderReady'
+				)
 				.thenCatch(() => { /* do nothing, just stop the error */ });
-				}
-				if (prerenderValue === undefined) {
-					return driver.sleep(implicitTimeout);
-				}
-				return true;
-			})
-			.then(() => driver.getPageSource())
-			.then(ret => {
-				pool.returnDriver(driver);
-				return ret;
-			}, error => {
-				pool.returnDriver(driver);
-				throw error;
-			})
-		)
-		.then(code => {
-			console.info('Finished generating render for %s', url);
-			cache.set(url, code);
-			res.status(200).send(code).end();
-			done();
+			}
+			if (prerenderValue === undefined) {
+				return driver.sleep(implicitTimeout);
+			}
+			return true;
+		})
+		.then(() => driver.getPageSource()) //fetch source
+		.then(source => {
+			pageSource = source;
+			return driver.isElementPresent({ //make sure the page is valid
+				css: 'meta[name=fragment]'
+			});
+		})
+		.then(present => {
+			isPresent = present;
+			pool.returnDriver(driver);
 		}, error => {
+			pool.returnDriver(driver);
+			throw error;
+		})
+		.then(() => {
+			console.info('Finished generating render for %s', url);
+			if (isPresent === false) {
+				console.info('But will not cache because success condition failed');
+			} else {
+				cache.set(url, pageSource);
+			}
+			res.status(200).send(pageSource).end();
+		})
+		.catch(error => {
 			console.error(error.stack);
 			res.status(500).end();
-			done();
-		});
+		})
+		.finally(done);
 	}
 	app.get('/*', onRequest);
 
