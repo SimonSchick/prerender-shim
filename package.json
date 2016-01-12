@@ -1,5 +1,5 @@
 {
-  "name": "prerender",
+  "name": "prerender-shim",
   "version": "0.0.1",
   "description": "Prerenders a websites HTML",
   "main": "index.js",
@@ -12,5 +12,18 @@
     "express": "^4.13.3",
     "selenium-webdriver": "^2.48.2",
     "webdriver-pool": "^0.3.2"
-  }
+  },
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SimonSchick/prerender-shim.git"
+  },
+  "keywords": [
+    "prerender",
+    "shim"
+  ],
+  "bugs": {
+    "url": "https://github.com/SimonSchick/prerender-shim/issues"
+  },
+  "homepage": "https://github.com/SimonSchick/prerender-shim#readme"
 }
