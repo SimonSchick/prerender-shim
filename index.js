@@ -3,6 +3,7 @@
 const express = require('express');
 const WebDriverPool = require('webdriver-pool');
 const Cache = require('node-cache');
+const promiseRetry = require('promise-retry');
 
 const browserCount = process.env.BROWSER_COUNT || 1;
 const port = process.env.PORT || 3000;
@@ -33,6 +34,13 @@ app.disable('etag');
 makePool()
 .then(pool => {
 
+	pool.on('warn', warning => {
+		console.warn(warning.message);
+		if (warning.error) {
+			console.warn(warning.error.stack);
+		}
+	});
+
 	const cache = new Cache({
 		stdTTL: cacheTTL,
 		checkperiod: 10
@@ -51,40 +59,49 @@ makePool()
 		let driver;
 		let pageSource;
 		let isPresent;
-		pool.getDriver()
-		.then(driv => {
-			driver = driv;
-			driver.get(url);
-		})
-		.then(() => getPrerenderState(driver))
-		.then(prerenderValue => { //check prerender state
-			if (prerenderValue === false) {
-				return driver.wait(
-					() => getPrerenderState(driver),
-					explicitTimeout,
-					'Waiting for window.prerenderReady'
-				)
-				.thenCatch(() => { /* do nothing, just stop the error */ });
-			}
-			if (prerenderValue === undefined) {
-				return driver.sleep(implicitTimeout);
-			}
-			return true;
-		})
-		.then(() => driver.getPageSource()) //fetch source
-		.then(source => {
-			pageSource = source;
-			return driver.isElementPresent({ //make sure the page is valid
-				css: 'meta[name=fragment]'
-			});
-		})
-		.then(present => {
-			isPresent = present;
-			pool.returnDriver(driver);
-		}, error => {
-			pool.returnDriver(driver);
-			throw error;
-		})
+		promiseRetry(() =>
+			pool.getDriver()
+			.then(driv => {
+				driver = driv;
+				driver.get(url);
+			})
+			.then(() => getPrerenderState(driver))
+			.then(prerenderValue => { //check prerender state
+				if (prerenderValue === false) {
+					return driver.wait(
+						() => getPrerenderState(driver),
+						explicitTimeout,
+						'Waiting for window.prerenderReady'
+					)
+					.thenCatch(() => { /* do nothing, just stop the error */ });
+				}
+				if (prerenderValue === undefined) {
+					return driver.sleep(implicitTimeout);
+				}
+				return true;
+			})
+			.then(() => driver.getPageSource()) //fetch source
+			.then(source => {
+				pageSource = source;
+				return driver.isElementPresent({ //make sure the page is valid
+					css: 'meta[name=fragment]'
+				});
+			})
+			.then(present => {
+				isPresent = present;
+				pool.returnDriver(driver);
+			}, error => {
+				if (error.code === 'ECONNREFUSED') {
+					return pool.renewDriver(driver)
+					.then(() => { //trigger the retry
+						console.warn('Driver was unresponse and has been renewed, retrying...');
+						throw error;
+					});
+				}
+				pool.returnDriver(driver);
+				throw error;
+			})
+		)
 		.then(() => {
 			console.info('Finished generating render for %s', url);
 			if (isPresent === false) {
@@ -98,7 +115,7 @@ makePool()
 			console.error(error.stack);
 			res.status(500).end();
 		})
-		.finally(done);
+		.then(done, done);
 	}
 	app.get('/*', onRequest);
 
