@@ -11,8 +11,9 @@
   "dependencies": {
     "express": "^4.13.3",
     "node-cache": "^3.0.0",
+    "promise-retry": "^1.0.1",
     "selenium-webdriver": "^2.48.2",
-    "webdriver-pool": "^0.3.4"
+    "webdriver-pool": "^0.3.6"
   },
   "devDependencies": {},
   "repository": {
