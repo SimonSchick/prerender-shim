@@ -9,6 +9,7 @@ IMPLICIT_TIMEOUT: number in milliseconds default 2000ms
 CACHE_TTL: number in seconds default 300
 BROWSER_LOGGING_PATH: string default /dev/null
 MAX_RETRIES: number default 2
+RENDER_TIMEOUT: number in milliseconds default 20000ms
 ```
 
 No caching will be performed when element that matches selector `meta[name=fragment]` is not found.
