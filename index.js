@@ -98,6 +98,7 @@ class PrerenderServer {
 			}))
 		)
 		.then(info => pool.returnDriver(driver).then(() => info))
+		.timeout(config.renderTimeout)
 		.catch(error => {
 			if (error.code === 'ECONNREFUSED') {
 				return pool.returnDriver(driver)
@@ -121,7 +122,9 @@ class PrerenderServer {
 			return Promise.resolve(cached);
 		}
 		console.info('Rendering html for %s...', url);
-		return promiseRetry(retry => this.driverRun(url).catch(retry))
+		return promiseRetry(retry => this.driverRun(url).catch(retry), {
+			retries: this.config.maxRetries
+		})
 		.then(pageInfo => {
 			console.info('Finished generating render for %s', url);
 			if (pageInfo.pageOk) {
@@ -130,8 +133,6 @@ class PrerenderServer {
 				console.info('But will not cache because success condition a');
 			}
 			return pageInfo.source;
-		}, {
-			retries: this.config.maxRetries
 		});
 	}
 
@@ -157,7 +158,8 @@ const server = new PrerenderServer({
 	implicitTimeout: process.env.IMPLICIT_TIMEOUT || 2000,
 	cacheTTL: process.env.CACHE_TTL || 300,
 	driverLogPath: process.env.BROWSER_LOGGING_PATH || '/dev/null',
-	maxRetries: process.env.MAX_RETRIES || 2
+	maxRetries: process.env.MAX_RETRIES || 2,
+	renderTimeout: process.env.RENDER_TIMEOUT || 20000
 });
 server.start()
 .then(() => {
