@@ -155,6 +155,10 @@
 		"prefer-const": 1,
 		"prefer-spread": 1,
 		"prefer-template": 1,
-		"require-yield": 1
+		"require-yield": 1,
+
+		"valid-jsdoc": [2, {
+			"requireReturn": false
+		}]
 	}
 }

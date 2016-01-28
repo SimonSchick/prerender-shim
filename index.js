@@ -88,7 +88,7 @@ class PrerenderServer {
 	 * Times out after renderTimeout
 	 * @private
 	 * @param  {string} url The url of the page to load.
-	 * @return {Promise.<{pageOk: boolean, source: string}} Resolves an object containing
+	 * @return {Promise.<{pageOk: boolean, source: string}>} Resolves an object containing
 	 * pageOk indicating if the page was valid for prerendering and source which is the actual DOMs html
 	 */
 	driverRun(url) {
