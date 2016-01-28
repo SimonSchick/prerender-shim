@@ -5,13 +5,23 @@ const WebDriverPool = require('webdriver-pool');
 const Cache = require('node-cache');
 const promiseRetry = require('promise-retry');
 
-
-
+/**
+ * Prerender server class.
+ */
 class PrerenderServer {
+
+	/**
+	 * @param  {Object} config The config options.
+	 */
 	constructor(config) {
 		this.config = config;
 	}
 
+	/**
+	 * Creates the webdriver pool
+	 * @private
+	 * @return {Promise.<WebDriverPool>} Resolves the created pool.
+	 */
 	createPool() {
 		const config = this.config;
 		this.pool = new WebDriverPool({
@@ -32,6 +42,11 @@ class PrerenderServer {
 		return this.pool.ready();
 	}
 
+	/**
+	 * Creates the http server.
+	 * @private
+	 * @return {Promise} Resolves once the server is listening.
+	 */
 	makeHTTPServer() {
 		this.app = express();
 		this.app.disable('etag');
@@ -56,12 +71,26 @@ class PrerenderServer {
 		});
 	}
 
+	/**
+	 * [getPrerenderState description]
+	 * @private
+	 * @param  {WebDriver} driver The driver to get the state from.
+	 * @return {Promise.<!boolean>} Resolves the pages prerender state.
+	 */
 	getPrerenderState(driver) {
 		return driver.executeScript(function int() { //eslint-disable-line prefer-arrow-callback
 			return window.prerenderReady; //eslint-disable-line no-undef
 		});
 	}
 
+	/**
+	 * Runs the actual rendering process.
+	 * Times out after renderTimeout
+	 * @private
+	 * @param  {string} url The url of the page to load.
+	 * @return {Promise.<{pageOk: boolean, source: string}} Resolves an object containing
+	 * pageOk indicating if the page was valid for prerendering and source which is the actual DOMs html
+	 */
 	driverRun(url) {
 		let driver;
 		const pool = this.pool;
@@ -114,6 +143,12 @@ class PrerenderServer {
 		});
 	}
 
+	/**
+	 * Main request handler for all incomign requests.
+	 * @private
+	 * @param  {http.Request} req The incoming request.
+	 * @return {Promise.<string>} Resolves the response text.
+	 */
 	handleRequest(req) {
 		const url = decodeURIComponent(req.path.substr(1));
 		const cached = this.cache.get(url);
@@ -136,6 +171,10 @@ class PrerenderServer {
 		});
 	}
 
+	/**
+	 * Creates the cache used for chaching html renders.
+	 * @private
+	 */
 	makeCache() {
 		this.cache = new Cache({
 			stdTTL: this.config.cacheTTL,
@@ -143,6 +182,10 @@ class PrerenderServer {
 		});
 	}
 
+	/**
+	 * Starts the actual server.
+	 * @return {Promise} Resolves once the webdriver pool and web server have been created.
+	 */
 	start() {
 		this.makeCache();
 		return this.createPool()
