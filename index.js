@@ -4,6 +4,7 @@ const express = require('express');
 const WebDriverPool = require('webdriver-pool');
 const Cache = require('node-cache');
 const promiseRetry = require('promise-retry');
+const url = require('url');
 
 /**
  * Prerender server class.
@@ -108,7 +109,7 @@ class PrerenderServer {
 					config.explicitTimeout,
 					'Waiting for window.prerenderReady'
 				)
-				.catch(() => { /* do nothing, just stop the error */ });
+				.catch(() => { console.log('Explicit timeout, render did not finish'); });
 			}
 			if (prerenderValue === undefined) {
 				return driver.sleep(config.implicitTimeout);
@@ -150,22 +151,27 @@ class PrerenderServer {
 	 * @return {Promise.<string>} Resolves the response text.
 	 */
 	handleRequest(req) {
-		const url = decodeURIComponent(req.path.substr(1));
-		const cached = this.cache.get(url);
+		const rawUrl = decodeURIComponent(req.path.substr(1));
+		const parsed = url.parse(rawUrl);
+		if (!parsed.protocol || !parsed.protocol.match(/^https?:$/i) || !parsed.host) {
+			return Promise.resolve('INVALID URL');
+		}
+
+		const cached = this.cache.get(rawUrl);
 		if (cached) {
-			console.info('Returning cache for %s ', url);
+			console.info('Returning cache for %s ', rawUrl);
 			return Promise.resolve(cached);
 		}
-		console.info('Rendering html for %s...', url);
-		return promiseRetry(retry => this.driverRun(url).catch(retry), {
+		console.info('Rendering html for %s...', rawUrl);
+		return promiseRetry(retry => this.driverRun(rawUrl).catch(retry), {
 			retries: this.config.maxRetries
 		})
 		.then(pageInfo => {
-			console.info('Finished generating render for %s', url);
+			console.info('Finished generating render for %s', rawUrl);
 			if (pageInfo.pageOk) {
-				this.cache.set(url, pageInfo.source);
+				this.cache.set(rawUrl, pageInfo.source);
 			} else {
-				console.info('But will not cache because success condition a');
+				console.info('But will not cache because success condition failed.');
 			}
 			return pageInfo.source;
 		});
