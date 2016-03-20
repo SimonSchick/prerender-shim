@@ -54,6 +54,7 @@ class PrerenderServer {
 		this.app.get('/*', (req, res, done) => {
 			this.handleRequest(req, res)
 			.then(data => {
+				res.set('Content-Type', 'text/html');
 				res.status(200).end(data);
 				done();
 			}, error => {
